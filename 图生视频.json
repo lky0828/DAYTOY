@@ -1,0 +1,754 @@
+{
+  "name": "图生视频",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "输入想法",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "model",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "img",
+              "fieldType": "textarea"
+            },
+            {
+              "fieldLabel": "ad_creativity",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -448,
+        16
+      ],
+      "id": "82760902-497f-4403-8587-1b05714954ec",
+      "name": "On form submission",
+      "webhookId": "de13630c-bbae-41a3-b9c3-6204ed7cc957"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "operation": "analyze",
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "text": "分析给定图像，\n并以 JSON 格式返回分析结果，包含以下字段：\n**json\n{\n“brand_name\"：“图像中可见或可推测的品牌名称”，\n\"color_scheme\": [\n{\n\"hex\":\n“主要颜色的十六进制代码”，\n\"name\":\n\"颜色名称或描述\"\n｝\n],\n\"font_style\"：“描述字体风格、例如：衬线/无衬线、粗体/细体、圆角/科技感等”，“visual_description\"：“用一到两句话总结图像主要内容，忽略背景与无关元素\"\n要求：\n* 仅返回 JSON，不要额外解释或评论\n* 输出必须使用中文",
+        "imageUrls": "={{ $json.img }},{{ $json.model }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        -96,
+        0
+      ],
+      "id": "d94a479f-ed7f-4857-b7a1-de0125250031",
+      "name": "Analyze an image",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "nKJsPa8W3PtAMlxA",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        96,
+        208
+      ],
+      "id": "aeef27b4-b7a7-4aa1-a0c0-bcad54a121ae",
+      "name": "DeepSeek Chat Model",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "T3Oxih5zlPQ8YlFH",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=根据提供用户的描述和提供的图象：{{ $('On form submission').item.json.img }}，{{ $('On form submission').item.json.model }}生成一个用于创建产品推广图的AI提示词。\n用户描述：{{ $json.content.parts[0].text }}\n模特：{{ $('On form submission').item.json.model }}\n产品信息：{{ $('On form submission').item.json.img }}\n提供信息包含：\n产品图的描述信息\n产品的广告创意\n\n默认规则：\n当描述不明确时，将产品或人物安置在符合其使用逻辑的真实生活场景中，保持整体自然真实的摄影高度。画面必须容纳完整的产品和完整的人脸，不允许有缺失。\n真实原则：\n画面应真实自然，可信。拍摄风格可包含：偏心构图、微小模糊、室内光、微小颗粒感。允许自然瑕疵：皮肤纹理、光线不均、背景细杂物等。所有包装文字必须原样呈现，不得虚构或修改任何字词、数字或文字。\n建议使用的相机风格关键词（选择至少2-3个）：\n「手机快照」、「手持拍摄」、「心偏构图」、「自然室内光」、「轻微阴影」、「轻微运动模糊」、「自动曝光」、「未修饰的外观」、「轻微颗粒感」\n安全规范：\n不引用受版权保护的角色名称。仅生成图像提示词，不包含对话或脚本形式。\n输出格式：\n只返回一个 JSON 对象，包含：\nJSON{\n  \"image_prompt\": \"描述文本（不超过150字），以自然语言表达，包括主题、动作、情绪、场景、风格/相机风格、颜色描述、以及对文字准确呈现的要求。\"\n}\n多样性规则：\n若未指定，则自动允许自然多样化人物（性别、族群）。默认年龄范围：20-40岁。默认使用真实环境场景（如家、街道、商店、办公室、健身房），另有说明。\n译文：\nJSON{\n  \"image_prompt\": \"一名年轻男子坐在咖啡馆窗边，轻轻戴上无线蓝牙耳机；动作：用手指轻触耳机外侧；情绪：放松且沉浸；场景：桌上有咖啡与打开的笔电，街景模糊可见；风格/相机：手持拍摄、偏心构图、自然室内光、柔和阴影、轻微运动模糊；颜色：哑光黑耳机与温暖木色桌面形成对比；文字准确性：保持耳机上所有品牌与标识原样呈现，不更改任何字样\"\n} ",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=根据提供用户的描述，生成一个用于创建产品推广图的AI提示词。\n用户描述：{{ $json.content.parts[0].text }}\n提供信息包含：\n产品图的描述信息\n产品的广告创意\n\n默认规则：\n当描述不明确时，将产品或人物安置在符合其使用逻辑的真实生活场景中，保持整体自然真实的摄影高度。画面必须容纳完整的产品和完整的人脸，不允许有缺失。\n真实原则：\n画面应真实自然，可信。拍摄风格可包含：偏心构图、微小模糊、室内光、微小颗粒感。允许自然瑕疵：皮肤纹理、光线不均、背景细杂物等。所有包装文字必须原样呈现，不得虚构或修改任何字词、数字或文字。\n建议使用的相机风格关键词（选择至少2-3个）：\n「手机快照」、「手持拍摄」、「心偏构图」、「自然室内光」、「轻微阴影」、「轻微运动模糊」、「自动曝光」、「未修饰的外观」、「轻微颗粒感」\n安全规范：\n不引用受版权保护的角色名称。仅生成图像提示词，不包含对话或脚本形式。\n输出格式：\n只返回一个 JSON 对象，包含：\nJSON{\n  \"image_prompt\": \"描述文本（不超过150字），以自然语言表达，包括主题、动作、情绪、场景、风格/相机风格、颜色描述、以及对文字准确呈现的要求。\"\n}\n多样性规则：\n若未指定，则自动允许自然多样化人物（性别、族群）。默认年龄范围：20-40岁。默认使用真实环境场景（如家、街道、商店、办公室、健身房），另有说明。\n译文：\nJSON{\n  \"image_prompt\": \"一名年轻男子坐在咖啡馆窗边，轻轻戴上无线蓝牙耳机；动作：用手指轻触耳机外侧；情绪：放松且沉浸；场景：桌上有咖啡与打开的笔电，街景模糊可见；风格/相机：手持拍摄、偏心构图、自然室内光、柔和阴影、轻微运动模糊；颜色：哑光黑耳机与温暖木色桌面形成对比；文字准确性：保持耳机上所有品牌与标识原样呈现，不更改任何字样\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        176,
+        0
+      ],
+      "id": "a7899c07-b3ac-41c3-99d8-43a25fc74a97",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"img_prompt\":\"demo\"\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        384,
+        256
+      ],
+      "id": "b50df106-0747-489a-be40-5eadc19ab293",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/gpt4o-image/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dac5bef8f1ef90a87b5565f3337998bb"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"filesUrl\": [\n    \"{{ $('On form submission').item.json.img }}\",\n    \"{{ $('On form submission').item.json.model }}\"\n  ],\n  \"prompt\": \"{{ $json.output.img_prompt }}\",\n  \"size\": \"1:1\",\n  \"callBackUrl\": \"https://your-callback-url.com/callback\",\n  \"isEnhance\": false,\n  \"uploadCn\": false,\n  \"enableFallback\": false,\n  \"fallbackModel\": \"FLUX_MAX\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        496,
+        0
+      ],
+      "id": "152cc265-9807-411e-b81a-57700e59c062",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/gpt4o-image/record-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dac5bef8f1ef90a87b5565f3337998bb"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        960,
+        16
+      ],
+      "id": "cee5a8cb-e74b-4968-812a-7e7d66bba441",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        0
+      ],
+      "id": "3ac2311e-9444-47d1-8d3b-5f7c7e6a22e1",
+      "name": "Wait",
+      "webhookId": "454d48c9-7867-4ebd-a10e-ad6817056c37"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8094acb9-2d50-451d-87ad-afa7c1727ce5",
+              "name": "resultUrls",
+              "value": "={{ $json.data.response.resultUrls[0] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1616,
+        224
+      ],
+      "id": "60143955-a4e7-484e-aebc-1d066c845a86",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6c5cc7ce-0ac6-4ab3-8537-9aaf0410ff59",
+              "leftValue": "=true",
+              "rightValue": "={{ $json.data.successFlag == 1}}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1152,
+        32
+      ],
+      "id": "d7f01a10-cdc3-44b0-b3fd-fbc502c72c5c",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "modelId": {
+          "__rl": true,
+          "mode": "list",
+          "value": ""
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.ollama",
+      "typeVersion": 1,
+      "position": [
+        0,
+        -192
+      ],
+      "id": "e5d6da73-0dfd-4251-9579-65aa5c675692",
+      "name": "Analyze image",
+      "credentials": {
+        "ollamaApi": {
+          "id": "DpmkHndN8dMilEgI",
+          "name": "Ollama account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=\n\n图象：{{ $json.img }},{{ $json.model }}\n分析以下图像，并以 JSON 格式返回分析结果，包含以下字段：\n\n{\n  \"brand_name\": \"图像中可见或可推测的品牌名称，若无品牌则填'无'\",\n  \"color_scheme\": [\n    {\n      \"hex\": \"主要颜色的十六进制代码\",\n      \"name\": \"颜色名称或描述\"\n    }\n  ],\n  \"font_style\": \"描述字体风格，例如：衬线/无衬线、粗体/细体、圆角/科技感等，若图像中无文字则填'无文字'\",\n  \"visual_description\": \"用一到两句话总结图像主要内容，忽略背景与无关元素\"\n}\n\n要求：\n* 仅返回 JSON，不要额外解释或评论\n* 输出必须使用中文\n* 严格根据图像内容作答，不要凭空推测",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -224,
+        -352
+      ],
+      "id": "b6553c3f-9e05-482d-abfa-d81653362565",
+      "name": "AI Agent1"
+    },
+    {
+      "parameters": {
+        "model": "deepseek-reasoner",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -224,
+        -208
+      ],
+      "id": "104a2c48-989d-42ed-9a87-f50fa8c443cb",
+      "name": "DeepSeek Chat Model1",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "T3Oxih5zlPQ8YlFH",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=根据参考图象和用户描述，生成一个视频提示词\n\n用户描述：{{ $('On form submission').item.json.ad_creativity }}\n\n参考图象描述：{{ $('Analyze an image').item.json.content.parts[0].text }}\n\n规则：\n保持画面随意，真实，避免使用影棚语言\n结果只返回一个json对象：video_prompt\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "\n\n### 目标\n\n结合参考图像与用户备注，生成一个用于视频生成的提示词。\n\n### 设计原则\n\n视频应呈现手机实拍感：手持、轻微晃动、自然偏心构图、室内混合光、轻微颗粒感。氛围自然真实，不要刻意修饰；允许环境细节与人类真实状态。包装上可见文字必须如实呈现，不可捏造内容。不可使用受版权保护的角色。画面必须呈现完整的产品和完整的人脸，不允许有缺失。\n\n### 输出规范\n\n只返回一个 JSON 对象。\"video_prompt\"：一段自然语言描述（≤150字），包含：\n\n- 拍摄主体\n- 动作\n- 情绪\n- 场景\n- 2-3 个镜头风格提示\n- 简单的色彩或光线提示\n- 当相关时，提及包装文字准确性\n\n不额外添加字段、数组或标题。不要凭空制造不存在的产品文字。固定为单一场景与单一物体焦点。\n\n### 构图要求\n\n主体始终完整出现在画面中。构图保持自然中心区域，不使用过窄特写。如果存在动作，镜头应保持锁定在面部与产品之间。\n\n### 构图要求\n主体始终完整出现在画面中。\n构图保持自然中心区域，不使用过窄特写。\n固定为单一场景与单一物体焦点\n\n### 示例\n\n```json\n{\n  \"video_prompt\": \"一个年轻成年人站在卧室的木质桌旁，轻轻拿起一个小产品并旋转着向镜头展示；他随口讲述使用体验，同时把镜头引向包装上的文字，让其清晰出现；场景：温暖自然光下的卧室，旁边有一盆小绿植和随意摆放的书；情绪：轻松随和，像朋友之间随便聊天；镜头：手持拍摄，偏离中心构图，柔和颗粒感；颜色：暖色光线与浅木色桌面，保持包装文字原样呈现、准确可见。\"\n}\n```"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        -400,
+        496
+      ],
+      "id": "bf59ddd6-189f-40b5-a83b-440a466f8f07",
+      "name": "AI Agent2"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatDeepSeek",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        704
+      ],
+      "id": "5dd2dbdb-0234-453b-8a8c-29bf2a723351",
+      "name": "DeepSeek Chat Model2",
+      "credentials": {
+        "deepSeekApi": {
+          "id": "T3Oxih5zlPQ8YlFH",
+          "name": "DeepSeek account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n\t\"video_prompt\":\"demo\"\n}",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        -240,
+        752
+      ],
+      "id": "5ce92018-05b4-405b-9baf-f940b06f95cd",
+      "name": "Structured Output Parser1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.kie.ai/api/v1/veo/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dac5bef8f1ef90a87b5565f3337998bb"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"prompt\": \"{{ $json.output.video_prompt }}\",\n  \"imageUrls\": \"{{ $('Edit Fields').item.json.resultUrls }}\",\n  \"model\": \"veo3_fast\",\n  \"watermark\": \"MyBrand\",\n  \"callBackUrl\": \"http://your-callback-url.com/complete\",\n  \"aspect_ratio\": \"16:9\",\n  \"seeds\": {{ Math.floor(Math.random() * (99999 - 10000 + 1)) + 10000 }},\n  \"enableFallback\": false,\n  \"enableTranslation\": true,\n  \"generationType\": \"REFERENCE_2_VIDEO\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        48,
+        496
+      ],
+      "id": "8304214b-d347-4b88-8c76-9a2b8842554f",
+      "name": "HTTP Request2"
+    },
+    {
+      "parameters": {
+        "amount": 10
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        288,
+        528
+      ],
+      "id": "eaf04a79-c5cb-4be2-aa35-2a265eae34ff",
+      "name": "Wait1",
+      "webhookId": "97985950-1729-43c5-9e55-edc33ab1797d"
+    },
+    {
+      "parameters": {
+        "url": "https://api.kie.ai/api/v1/veo/record-info",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "taskId",
+              "value": "={{ $json.data.taskId }}"
+            },
+            {
+              "name": "index",
+              "value": "0"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer dac5bef8f1ef90a87b5565f3337998bb"
+            }
+          ]
+        },
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        560,
+        512
+      ],
+      "id": "0d449ad3-fd2f-421c-bcff-95c8cb51eea6",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "6c5cc7ce-0ac6-4ab3-8537-9aaf0410ff59",
+              "leftValue": "=true",
+              "rightValue": "={{ $json.data.successFlag = 1 }}",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        832,
+        528
+      ],
+      "id": "f3c45e39-26b7-484d-af49-da9b89908067",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8094acb9-2d50-451d-87ad-afa7c1727ce5",
+              "name": "resultUrls",
+              "value": "={{ $json.data.paramJson }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1088,
+        512
+      ],
+      "id": "75aefef0-8346-4713-a6bb-bcd70eb015ac",
+      "name": "Edit Fields1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Analyze an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze an image": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        []
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DeepSeek Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser1": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent2",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent2": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request2": {
+      "main": [
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Wait1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "4422f522-e508-4822-a300-988cb452368e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cb2bb7a80c4efd9ec8d092a6345b5dc75935f292baf07e11f4fef84e42476cf2"
+  },
+  "id": "SPgtEQ19ftZ3TPgt",
+  "tags": []
+}
